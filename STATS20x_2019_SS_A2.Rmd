@@ -1,0 +1,269 @@
+---
+title: "STATS 201/8 Assignment 2"
+author: 'Brett Kim 6350589'
+date: 'Due Date: 12 noon Tuesday 22nd January'
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.height=3)
+```
+```{r echo=FALSE}
+## Do not delete this!
+## It loads the s20x library for you. If you delete it 
+## your document may not compile
+require(s20x)
+```
+
+# Question 1
+
+## Question of interest/goal of the study
+
+We want to build a model to explain the sale price of houses using their annual city tax bill (similar idea to rates in New Zealand) for houses in Albuquerque, New Mexico. In particular, we are interested in estimating the effect on sales price for houses which differ in city tax bills by 1% and 50%. 
+
+# Read in and inspect the data:
+```{r,fig.height=4,fig.width=6}
+hometax.df=read.csv("hometax.csv")
+
+trendscatter(Price~Tax,main="Price vs Tax",data=hometax.df)
+trendscatter(log(Price)~log(Tax),main="log(Price) vs log(Tax)",data=hometax.df)
+```
+
+The trendscatter plot of price vs tax on their linear scales shows that residuals are non-constant. There is less variance when tax is low and much greater variance when tax is high. This can be seen by the fanning trend of the residuals.
+
+On the contrary, the trendscatter plot of the log(price) vs log(tax) has fixed this problem and shows costant scatter.
+
+## Justify why a log-log (power) model is appropriate here.
+The log-log model is appropriate here because log transforming is useful for financial/economic data where we are dealing in dollar terms. Both predictor and response for our data are represented in dollars terms. We are also interested in estimating the percentage change in response when we change the predictor by 1% and 50%, hence why a log-log model is useful here also.s
+
+## Fit model and check assumptions.
+```{r,fig.height=3.5,fig.width=6}
+power.fit = lm(log(Price) ~ log(Tax),hometax.df)
+plot(log(Price) ~ log(Tax), hometax.df)
+abline(coef(power.fit), col='red')
+plot(power.fit, which =1)
+normcheck(power.fit)
+cooks20x(power.fit)
+summary(power.fit)
+100*(1.01 ^ confint(power.fit)[2,]-1)
+100*(1.50 ^ confint(power.fit)[2,]-1)
+```
+
+
+
+## Methods and assumption checks
+We fit a log-log model because both price and tax are in units of dollars. It is common practice that financial and economic data are transformed into the log scale. And also, we were interested in estimating the percentage change in response when there is a percentage change in the predictor.
+
+The data was collected from a random sample of 104 houses sold in Alburquerque, New Mexico. Therefore we have no reason to doubt its independence and representation of our population. No data points were exlcuded.
+
+The residual plot showed fairly patternless residals and constant scatter. These are both good signs. The QQ plot shows that price strongly follows a normal distribution for most of the dataset. Although there is some slight deviation on the lower and upper quartiles of the data range, these are not very large. The histogram also shows our data is fairly normally distributed with no real skewness. There were no outliers visible on the plotted data and the Cook's Distance plot confirms this. All in all the assumptions get a pass.
+
+Our model is: $log(Price_i) = \beta_0 + \beta_1log(Tax_i) + \epsilon_i$ where $\epsilon_i \sim iid ~ N(0,\sigma^2)$
+
+Our model explains approximately 86% of the total variability in Price.
+
+
+
+## Executive Summary
+The aim of this investigation was to explain the sale price of houses using their annual city tax bill. The population of interest were houses in Albuquerque, New Mexico. No data points were excluded.
+
+We have found strong evidence that a relationship between the annual city tax bill of a house in Alburquerque and its sale price exists $(p \approx 0)$. Sale price was seen to follow a power-law relationship with respect to tax bill.
+
+We estimate that a 1% increases in annual city tax bill corresponds to an increase in median house sale price of between 0.74% and 0.87%. Similarly, we estimate that a 50% increase in annual city tax bill corresponds to an increase in median house sale price of between 34.91% and 42.17%.
+
+
+****
+
+# Question 2
+
+
+## Question of interest/goal of the study
+
+We want to explore the relationship between hippocampus size and age. In particular, we are interested in whether the relationship differs between healthy individuals and individuals with dementia related symptoms.
+
+# Read in and inspect the data:
+```{r,fig.height=4,fig.width=6}
+Hippocampus.df<-read.csv("Hippocampus.csv")
+plot(Hippocampus~Age,main="Hippocampus Size versus Age",type="n",data=Hippocampus.df)
+text(Hippocampus.df$Age, Hippocampus.df$Hippocampus, Hippocampus.df$AD, cex=.8)
+
+trendscatter(Hippocampus~Age,data=Hippocampus.df[Hippocampus.df$AD=="D",],xlim=c(55,95),main="Dementia")
+trendscatter(Hippocampus~Age,data=Hippocampus.df[Hippocampus.df$AD=="H",],xlim=c(55,95),main="Healthy")
+```
+
+There appears to be a slight negative linear trend between age and hippocampus volume in both healthy individuals and individuals with dementia. The data looks to have quite large variance. This is confirmed in both of the "Dementia" and "Healthy" plots where we see that there is good constant scatter through the range of the data but the variance in residuals is large. By visual inspection, it appears that over the course of 30 years between the age of about 60 to 90, healthy individuals have a slightly less of a decrease in hippocampus volume compared to individuals with dementia.
+
+
+
+## Fit model and check assumptions.
+```{r,fig.height=3.5,fig.width=6}
+fit <- lm(Hippocampus ~ Age * AD, Hippocampus.df)
+summary(fit)
+
+fit2 <- lm(Hippocampus ~ Age + AD, Hippocampus.df)
+summary(fit2)
+confint(fit2)
+
+plot(fit2, which = 1)
+normcheck(fit2)
+cooks20x(fit2)
+```
+
+## Plot the data with your appropriate model superimposed over it
+```{r,fig.height=4,fig.width=6}
+plot(Hippocampus~Age,main="Hippocampus Size versus Age",sub="red = Healthy, green = Dementia",type="n",data=Hippocampus.df)
+text(Hippocampus.df$Age, Hippocampus.df$Hippocampus, Hippocampus.df$AD, cex=.8)
+
+abline(fit2$coef[1],fit2$coef[2],col = "green")
+abline(fit2$coef[1]+fit2$coef[3],fit2$coef[2],col = "red")
+```
+
+
+## Methods and assumption checks
+
+Our dataset had one numeric response variable and two predictor variables; one numeric and one categorical. Our initial interaction model showed non-significant results for the top-up intercept and top-up slope for the healthy group (i.e. when considering the dementia group as baseline). So we reduced our model down to a main effects only model. Refitting on this model showed significance for only the top-up intercept for the healthy group. Hence, we have fit a simple linear main effects only model.
+
+Our data was obtained from random samples of subjects with and without dementia related symptoms between the ages of about 54 and 91. Because our dataset was obtained by random sampling we can assume it is an independent and representative sample.
+
+Our assumption checks all had good results. The residual plot showed constant and patternless scatter throughout the plot. Although there was a little tapering of residual numbers at the upper end, likely because the greater the age the fewer numbers of individuals in the cohort. The QQ plot and histogram show the dataset is very closely normally distributed. The Cook's Distance plot shows there are no outliers.
+
+Our model is $Volume_i = \beta_0 + \beta_1(Age_i) + \beta_2(ADH) + \epsilon_i$ 
+
+where $\epsilon_i \sim iid ~ N(0,\sigma^2)$ and $ADH = 1$ if the individual is healthy and $0$ otherwise.
+
+Our model explained 23% of the variability in hippocampus volume.
+
+
+
+
+## Executive Summary
+
+The purpose of this analysis was to study the relationship between hippocampus size and age, and whether this relationship differs among individuals with dementia related symptoms and healthy individuals. No data points were excluded in this analysis.
+
+We have found a negative linear relationship in hippocampus size and age $(p \approx 0)$. Our results show that hippocampus size and age follow the same relationship for healthy individuals and those with dementia related symptoms. However, on average, healthy individuals have greater hippocampus volume than those with dementia related symptoms.
+
+We estimate that for every year any individual (healthy or otherwise) gets older their hippocampus will decrease on average by between 73.5 and 58.6 volume units. However, we also estimate that the hippocampus of healthy individuals will on average be greater by 734 to 981 volume units than those with dementia related symptoms.
+
+
+****
+
+# Question 3
+
+## Question of interest/goal of the study
+
+It is of interest to study the relationship between ventricles size and age. In particular, we are interested in whether the relationship varies between healthy individuals and those with dementia related symptoms.  
+
+
+## Read in and inspect the data:
+```{r,fig.height=4,fig.width=6}
+Ventricles.df=read.csv("Ventricles.csv")
+plot(Ventricles~Age,main="Ventricles Size versus Age",type="n",data=Ventricles.df)
+text(Ventricles.df$Age, Ventricles.df$Ventricles, Ventricles.df$AD, cex=.8)
+
+plot(log(Ventricles)~Age,main="log Ventricles Size versus Age",type="n",data=Ventricles.df)
+text(Ventricles.df$Age, log(Ventricles.df$Ventricles), Ventricles.df$AD, cex=.8)
+
+trendscatter(log(Ventricles)~Age,data=Ventricles.df[Ventricles.df$AD=="D",],xlim=c(55,95),main="Dementia")
+trendscatter(log(Ventricles)~Age,data=Ventricles.df[Ventricles.df$AD=="H",],xlim=c(55,95),main="Healthy")
+```
+
+It is difficult to discern any clear trend from the plot of ventricles size vs age on their linear scale. However, it seems to appear that variance in ventricles size increases with age. Indicating the possibility of some right skew in the dataset.
+
+By log transforming ventricles size we see that the range of datapoints becomes more constant, to the points where it looks possible to fit a log linear model.
+
+The trendscatter plots of log(ventricle size) vs age for both dementia and healthy groups confirms that we have constant scatter. There appears to be a positive relationship between age and ventricle size for those with dementia related symptoms. For healthy individuals, there is not a simple positive trend as there is a sudden decrease in the mean of logged ventricles size past approximately 80 years.
+
+```{r,fig.height=4,fig.width=6}
+Ventriclesfit1=lm(log(Ventricles)~Age*AD,data=Ventricles.df)
+plot(Ventriclesfit1,which=1)
+normcheck(Ventriclesfit1)
+cooks20x(Ventriclesfit1)
+summary(Ventriclesfit1)
+confint(Ventriclesfit1) # 1% increase in x causes betwen i%-i% increase in y
+exp(confint(Ventriclesfit1)) # y gets multiplied by i for every increase in x
+(exp(confint(Ventriclesfit1))-1)*100 # y increases by i% for every incease in x
+
+# rotate factor 
+Ventricles.df=within(Ventricles.df,{ADflip=factor(AD,levels=c("H","D"))})
+Ventriclesfit2=lm(log(Ventricles)~Age*ADflip,data=Ventricles.df)
+summary(Ventriclesfit2)
+confint(Ventriclesfit2)
+exp(confint(Ventriclesfit2))
+(exp(confint(Ventriclesfit2))-1)*100
+
+```
+
+
+
+## Plot the data with your appropriate model superimposed over it
+```{r,fig.height=4,fig.width=6}
+plot(log(Ventricles)~Age,main="log Ventricles Size versus Age",sub="red = Healthy, green = Dementia",type="n",data=Ventricles.df)
+text(Ventricles.df$Age, log(Ventricles.df$Ventricles), Ventricles.df$AD, cex=.8)
+abline(Ventriclesfit1$coef[1],Ventriclesfit1$coef[2],col="green")
+abline(Ventriclesfit1$coef[1]+Ventriclesfit1$coef[3],
+       Ventriclesfit1$coef[2]+Ventriclesfit1$coef[4],col="red")
+
+# or abline(Ventriclesfit2$coef[1],Ventriclesfit2$coef[2],col="red")
+```
+
+
+## Methods and assumption checks
+
+We fit a log transformed interaction model because firstly, we saw that the data appeared to be right skewed. Secondly, one of our predictors was a factor. Hence an interaction model had to be used in order to look at the relationship between ventricles size and age, and how these differed between the two groups. Our initial results showed that both the top-up intercept and top-up gradients were significant. So we settled on a log transformed iteraction model as our final model.
+
+Our data was obtained from random samples of subjects with and without dementia related symptoms between the ages of about 54 and 91. Because our dataset was obtained by random sampling we can assume it is an independent and representative sample.
+
+The assumption plots had very good results. We had constant and trendless scatter, the QQ plot and histogram showed our data closely followed the normal distribution, and there were no outliers detected in the Cook's Distance plot.
+
+Our model is:
+$log(Size_i) = \beta_0  + \beta_1(Age_i) + \beta_2(ADH) + \beta_3(Age_i \times ADH) + \epsilon_{i}$ 
+where $ADH = 1$ if healthy and 0 otherwise, and $\epsilon_i \sim iid ~N(0,\sigma^2)$
+
+Our model only explained 19% of the variability in the data.
+
+## In terms of slopes and/or intercepts, explain what the coefficient of Age:ADH is estimating.
+
+The estimated coefficient Age:ADH is estimating the amount that we decrease from the gradient coefficient of individuals with dementia related symptoms, when examining the gradient of healthy individuals, of same ages.
+
+In other words, those with dementia related symptoms have an estimated gradient coefficient for age of approximately 0.032. Healthy individuals have an estimated gradient coefficient that is approximately 0.013 lower than this. Or in absolute terms, healthy individuals have an estimated gradient coefficient for age of approximately 0.019.
+
+
+##	  For each of the following, either write a sentence interpreting a confidence interval to estimate the requested information or state why we cannot answer this from the R-output given:
+
+###	-in general, the difference in size of ventricles between healthy people and those exhibiting dementia symptoms.
+We cannot answer this question because the two groups follow a different relationship when using age to explain ventricles size. This difference in relationship is represented by the different slopes for the two groups.
+
+
+
+###	-the effect on  the size of ventricles for each additional years aging on healthy people.
+For healthy people each additional year increases the median ventricles size by 1.2% to 2.7% 
+
+
+
+### -the effect on  the size of ventricles for each additional years aging on people exhibiting dementia symptoms.
+For people exhibiting dementia related symptoms each additional year increases median ventricles size by 2.9% to 3.7%.
+
+
+
+## Looking at the plot with the model superimposed, describe what seems to be happening.
+At the age of about 60 healthy individuals have greater median ventricles size, but this difference becomes less and less significant with age. In other words, people exhibiting dementia related symptoms have a greater median rate of increase in ventricles size per year than healthy individuals.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,159 @@
+---
+title: "STATS 201/8 Assignment 4"
+author: "Brett Kim 6350589"
+date: 'Due Date: 12noon Friday 8th February'
+output:
+  word_document: default
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+  pdf_document: default
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.height=3)
+```
+```{r echo=FALSE,warning=FALSE}
+## Do not delete this!
+## It loads the s20x library for you. If you delete it 
+## your document may not compile
+require(s20x)
+```
+
+# Question 1
+
+## Questions of Interest
+
+The questions we want answered are: how does the population of geoducks change with age, did the storm event have any impact on the population, and did the relationship between age and the population count change after the storm?
+
+## Read in and inspect the data:
+
+```{r,fig.height=4.6,fig.width=6}
+Geoduck.df=read.table("Geoduck.txt",header=T)
+plot(Count~Age,data=Geoduck.df)
+abline(v=10,lty=2)
+```
+
+## Comment on plot(s) and/or summary statistics
+
+There appears to be a decreasing curved trend in the relationship between age and the count of geoducks at that age. After the storm the population count of geoducks has decreased by quite a bit. The population counts of geoducks aged between 20 and 50 years old appears realtively constant.
+
+
+## Fit and check model
+```{r}
+geoduck.fit1 = glm(Count ~ Age * Storm, poisson(link="log"), Geoduck.df)
+plot(geoduck.fit1, which = 1)
+1 - pchisq(60.985,44)
+summary(geoduck.fit1)
+
+
+geoduck.fit2 = glm(Count ~ Age * Storm, quasipoisson(link="log"), Geoduck.df)
+summary(geoduck.fit2)
+
+geoduck.fit3 = glm(Count ~ Age + Storm, quasipoisson(link="log"), Geoduck.df)
+plot(geoduck.fit3, which = 1)
+1 - pchisq(61.075, 45)
+summary(geoduck.fit3)
+
+
+confint(geoduck.fit3) # gives the values of alpha, beta for the linear predictor i.e. log(E[Y]) = a + Bx
+100*(1-exp(confint(geoduck.fit3))) # back transform to the raw scale exp(log(E[Y])) = exp(a + Bx) 
+```
+
+
+## Method and Assumption Checks
+The population theory of geoducks suggests we can use a generalised linear model (GLM) with a Poisson response distribution for the expected count at each age. Our first model was slightly modified to include for the possible interaction effect of the storm. The deviance residuals plot appeared relatively constant and patternless. The interaction term was non-significant, however, testing for overdispersion returned significant results so a quasipoisson response distribution was used with the interaction term still intact.
+
+Refitting the model with a quasipoisson response distribution still returned non-significant results for the interaction term.
+
+Finally, a simplified main effects only model was fit. Results showed only the main effects are significant. The deviance residual plot shows more or less the same degree of constant and patternless scatter. Although the overdispersion test shows that we have significant results $(p > 0.05)$, and thus can continue with the assumption that the dispersion ratio is 1, we have decided to remain with the quaispoisson response distribution for greater confidence in our estimated values.
+
+Our model is: 
+
+$log(E[Count_i]) = \beta_0 + \beta_1(Age_i) + \beta_2(Storm_i)$
+
+where the response variable $Count$ follows an overdispersed Poisson distribution. $E[Count_i]$ is the expected count of geoducks at Age $i$ and $Storm_i$ is 1 if Age $i$ is 10 or greater, and 0 if otherwise.
+
+## Executive Summary
+
+The aim of this investigation was to see how the population count of geoducks change with age, if the storm event had any impact on the population, and if the relationship between age and the population count changed after the storm.
+
+The results of our analysis show that there is a decreasing relationship between age and the expected population of geoducks $(p \approx 0)$. For a 1 year increase in age, the population count of geoducks decreases by between 5.9% and 10.4%, on average. 
+
+We also saw that the storm had a significant effect on the population count of geoducks $(p \approx 0)$. The storm lowered the population count of geoducks by between 19.1% and 67.7%, on average. However, the storm did not have an effect on the relationship between age and population count.
+
+
+****
+
+
+
+
+# Question 2
+
+## Questions of interest
+
+Is Streptomycin an effective radiation treatment? If so, does the effectiveness depend on the level of radiation dose?
+
+## Read in and inspect the data:
+
+```{r,fig.height=5,fig.width=6}
+mice.df <- read.csv("mice.csv")
+
+mice.df
+
+par(mfrow=c(1,2))
+barplot(matrix(c(mice.df$Propn, 1-mice.df$Propn)[mice.df$Dose=="high"], byrow=T, nrow=2), col=c("salmon", "steelblue"), beside=T, ylim=c(0, 1), main="High dose mice", names=mice.df$Treatment[mice.df$Dose=="high"],ylab="Proportion", cex.names=1.5, cex.main=2)
+barplot(matrix(c(mice.df$Propn, 1-mice.df$Propn)[mice.df$Dose=="low"], byrow=T, nrow=2), col=c("salmon", "steelblue"), beside=T, ylim=c(0, 1), main="Low dose mice", names=mice.df$Treatment[mice.df$Dose=="low"], ylab="Proportion",cex.names=1.5, cex.main=2)
+legend("topright",c("Survived", "Died"),pch=15,col=c("salmon","steelblue"),bty="n", cex=1.5)
+
+```
+
+## Comment on plot(s) and/or summary statistics
+We can see that mice that received a high does of radiation had more deaths than living mice for both treatment groups. This is the same for the Control group in low dose mice, but for the Strep group more mice survived than those that died. In both high dose and low dose mice the Strep group had a higher number of surviving/lower number of dead mice than the Control group.
+
+
+
+## Fit and check model
+```{r}
+mice.fit1 = glm(cbind(Survived,Died) ~ Treatment * Dose, family = binomial(link="logit"), mice.df)
+plot(mice.fit1, which = 1)
+anova(mice.fit1, test="Chisq")
+summary(mice.fit1)
+
+mice.fit2 = glm(cbind(Survived,Died) ~ Treatment + Dose, family = binomial(link="logit"), mice.df)
+anova(mice.fit2, test="Chisq")
+summary(mice.fit2)
+1 - pchisq(1.9026,1)
+
+exp(confint(mice.fit2)) # the model returns confint of estimated parameters in log(odds) form. To get the odds we exponentiate it.
+
+```
+
+
+## Model building and assumption checking
+
+Our data was composed of two categorical predictors; Treatment - split into Control and Streptomycin groups, and Dose - split into high and low groups. Our response was the log odds of surviving. The properties of our data meant that a logistic regression was chosen to model it. We initially fit an interaction model using the logit link to transform the linear predictor to give us the log odds of surviving. The initial deviance residual check shows residuals of zero, since all four observations have been used to fit for our four parameters. So this is not very helpful. Results of the anova analysis and summary of the model both show that the interaction of Treatment and Dose is non-significant. We cannot check for whether we can use a quasibinomial distribution since we have 0 degrees of freedom.
+
+We then simplified our model to a main effects only model. Results of the anova analysis and summary of the model show that both the main effects are significant. Testing for the suitability of a quasibinomial dsitribution returned non-significant results $(p \approx 0.17)$ hence we remained with the binomial distribution.
+
+Our final model is:
+
+$log(Odds_i) = \beta_0 + \beta_1(TreatmentStrep_i) + \beta_2(Doselow_i)$
+
+where:
+
+* $TreatmentStrep_i$ is 1 if the $i$th mouse was in the Strep group, and 0 otherwise.
+* $Doselow_i$ is 1 if the $i$th mouse was in the low Dose group, and 0 otherwise.
+* $Odds_i$ is the odds of the $i$th mouse surviving.
+
+
+## Executive summary
+
+Our analysis shows that Streptomycin is an effective treatment for radiation. We found that keeping radiation dose constant, the odds of survival for mice that receive streptomycin are 3.3 to 7.3 times greater than mice in the control group.
+
+However, Strepomycin did not have an effect on the relationship between dosage and odds of survival $(p \approx 0.18)$. In other words, Streptomycin's effectiveness did not depend on the level of radiation dose. Keeping treatment constant, we found the odds of survival for mice that recieve a low dose of radiation are 2.2 to 5 times greater than mice that receive a high dose. 
+
+
+
+
+

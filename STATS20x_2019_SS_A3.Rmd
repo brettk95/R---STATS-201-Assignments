@@ -1,0 +1,149 @@
+---
+title: "STATS 201/208 Assignment 3"
+author: 'Your Name and ID number here'
+date: 'Due Date:12 noon Friday 1st February'
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    fig_caption: yes
+    number_sections: yes
+---
+
+```{r echo=FALSE,warning=FALSE}
+## Do not delete this!
+## It loads the s20x library for you. If you delete it 
+## your document may not compile
+require(s20x)
+```
+
+# Question 1 
+
+## Question of interest/goal of the study
+
+We wish to identify the most promising trombone practice method. Do any of the methods show significant improvement? If so, which method shows the most significant improvement and by how much?
+
+## Read in and inspect the data:
+
+```{r,fig.height=4.2,fig.width=6}
+trombone.df <- read.csv("trombone.csv")
+trombone.df$method <- factor(trombone.df$method,levels=c("NP","MP","MPS","PP","CP"))
+stripchart(diff~method,data=trombone.df,vertical=T,pch=16,cex=1.5,method="stack",ylab="Difference in scores",main="Score change vs Training method")
+summaryStats(diff~method,data=trombone.df)
+
+```
+
+## Comment on plot(s) and/or summary statistics:
+Looking at the plot, No Practice (as the baseline) appears to have the lowest mean difference in scores. There are even three students where they actually performed worse when re-assessed for the No Practice group. For all other practice methods all students did at least as well as their first test or better when re-assessed.
+
+Checking the results of the summary statistics, we see that on average, all practice methods (including No Practice) had better results the second time around. The CP method has the highest mean score difference of 8.3 and is the least spread apart with a standard deviation of 0.8. For the rest of the practice methods, the mean difference in scores go in descending order of PP, MPS, MP, and NP.
+
+ 
+## Fit model and check assumptions
+
+```{r}
+anova.fit <- lm(diff ~ method, trombone.df)
+eovcheck(anova.fit)
+normcheck(anova.fit)
+cooks20x(anova.fit)
+anova(anova.fit)
+summary1way(anova.fit, draw.plot = FALSE)
+multipleComp(anova.fit)[multipleComp(anova.fit)[,4]<0.05,]
+```
+
+
+
+## Methods and assumption checks
+
+Our dataset was composed of a numeric response; difference in scores, and a single factor predictor; method, split into five groups. Hence, we fit a one-way ANOVA model.
+
+Our assumption checks returned positive results. The Equality of Variance (eov) check showed that each group had relatively constant and patternless scatter. The QQ plot and histogram showed that our data was normally distributed pretty well throughout. The Cook's plot showed that we have no outliers.
+
+The final model is:
+
+$score_{ij} = \mu + \alpha_i + \epsilon_{ij}$
+
+where $\mu$ is the overall difference in scores, and $\alpha_i$ is the effect of being in the $i$th practice method, and $\epsilon_{ij} \sim iid \ N(0,\sigma^2)$.
+
+The final model explained explained 56% $(R^2 = {\frac{209.20}{209.20 + 164.17}} \times 100)$ of the variability in difference in test scores.
+
+## Executive Summary
+
+We were interested in studying the effectiveness of various practice methods for trombonists. We investigated this by seeing whether any of the methods showed significant improvement, as measured by the difference in test scores before and after practice. We wanted to quantify which method had the most significant improvement, if practice did indeed have a significant effect on test scores.
+
+The results of our one-way ANOVA analysis gave evidence that practice does indeed have a significant effect on test scores $(p \approx 0)$. Upon further analysis we saw that, on average:
+
+* combination practice scored 3.3 to 12 marks higher than no practice.
+* combination practice scored 1.3 to 10 marks higher than mental practice only.
+* combination practice scored 0.3 to 9.0 marks higher than mental practice with simulated slide movement.
+* physical practice only scored 0.8 to 9.5 marks higher than no practice.
+
+As we can see, the most significant improvement came from using the CP method over NP. Where practice using the CP method resulted in 3.3 to 12 marks higher, on average, than No Practice. 
+
+****
+
+# Question 2
+
+
+## Question of interest/goal of the study
+We are interested in quantifying how much taller males tend to be than females, and whether this height difference depends on ethnicity.
+
+
+## Read in and inspect the data:
+
+```{r,fig.height=5,fig.width=8}
+height.df=read.table("height.txt",header=T)
+interactionPlots(height ~ sex+ethnicity, height.df)
+summaryStats(height~sex, height.df)
+summaryStats(height~ethnicity, height.df)
+```
+
+## Comment on plot(s) and/or summary statistics:
+We can see on this interaction plot that the mean height among males and the mean height among females are quite similar across ethnicities. Comparing between the sexes only, there appears to be a fairly sizeable difference in the mean height of females (1.63m) and males (1.77m), as can be seen in the summary statistics.
+
+It appears that the relationship between height and sex is the same for Europeans, Maori and Other groups; as all three lines appear parallel. Only Polynesians appear to follow a different relationship (compared to the other ethnic groups) between height and sex.
+
+## Fit model and check assumptions
+
+```{r}
+height.fit = lm(height ~ sex * ethnicity, height.df)
+eovcheck(height.fit)
+normcheck(height.fit)
+cooks20x(height.fit)
+anova(height.fit)
+
+height.fit2 = lm(height ~ sex + ethnicity, height.df)
+eovcheck(height.fit)
+normcheck(height.fit)
+cooks20x(height.fit)
+anova(height.fit2)
+summary2way(height.fit2, page = "nointeraction")
+```
+
+## Methods and assumption checks
+
+We had two explanatory factors; sex and ethnicity, and a numeric response; height. An interaction model was initially fit to confirm if an interaction effect was present. Checking for equality of variance and normal distribution of scatter showed positive results. Scatter appeared constant, and patternless throughout the dataset and followed the normal distribution quite closely. We had no outliers in our dataset. However, results of the two-way ANOVA analysis showed that the interaction term `sex:ethnicity` was not significant.
+
+Hence, we simplified our model to a main effects only model. The assumption checks were all okay for our new model. The two-way ANOVA analysis showed that the main effects were significant. So we we kept the main effects only model as our final model.
+
+The final model is:
+
+$height_{ijk} = \mu + \alpha_i + \beta_j + \epsilon_{ijk}$ where $\mu$ is the grand mean, $\alpha_i$ is the effect of being in the $i$th sex, $\beta_j$ is the effect of being the $j$th ethnicity, and $\epsilon_{ijk} \sim iid \ N(0,\sigma^2)$
+
+The final model explains 62% of the variation in height ($R^2 \approx \frac{0.38 + 0.03}{0.38 + 0.03 + 0.25} \times 100$).
+
+
+## Executive Summary
+
+We were interested in quantifying how much taller males tend to be than females, and whether this height difference depends on ethnicity.
+
+We found evidence that both sex $(p \approx 0)$ and ethnicity $(p = 0.03)$ have a significant relationship with height.
+
+However, ethnicity did not have an effect on the relationship between sex and height. In other words, the difference in height between males and females follow the same relationship for all ethnicities. To further extrapolate on this, when holding ethnicity constant we saw that, on average, males tend to be taller than females by between 11 and 16cm. 
+
+When comparing between ethnicities and holding sex constant, our results show that the only significant difference in height occurred between Other and Europeans $(p = 0.03)$, where Europeans were taller than Other by between 0.5 and 10cm, on average.
+
+
+
+
+
